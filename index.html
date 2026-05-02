@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>TSALIS · Admin Panel REAL-TIME (Firebase)</title>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, 'Segoe UI', 'Roboto', 'Arial', sans-serif;
+    }
+
+    body {
+      background: linear-gradient(145deg, #e9f0fc 0%, #f1f5f9 100%);
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .glass-card {
+      max-width: 1200px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(2px);
+      border-radius: 2rem;
+      box-shadow: 0 25px 45px -12px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.05);
+      padding: 2rem;
+      transition: all 0.2s ease;
+    }
+
+    h2 {
+      font-size: 1.8rem;
+      font-weight: 600;
+      margin-top: 0;
+      margin-bottom: 1.25rem;
+      color: #0a2b3e;
+      border-left: 5px solid #2c7da0;
+      padding-left: 1rem;
+    }
+
+    h3 {
+      font-size: 1.3rem;
+      font-weight: 500;
+      margin: 1.5rem 0 0.8rem 0;
+      color: #1f5068;
+      border-bottom: 2px solid #cbdde6;
+      padding-bottom: 0.3rem;
+    }
+
+    input, button {
+      font-size: 1rem;
+      border-radius: 60px;
+      border: 1px solid #cbd5e1;
+      padding: 10px 18px;
+      margin: 6px 8px 6px 0;
+      transition: 0.2s;
+      background-color: white;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #2c7da0;
+      box-shadow: 0 0 0 3px rgba(44,125,160,0.2);
+    }
+
+    button {
+      background: #2c7da0;
+      color: white;
+      border: none;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #1f5e7e;
+      transform: translateY(-1px);
+    }
+
+    button.secondary {
+      background: #475569;
+    }
+    button.secondary:hover {
+      background: #334155;
+    }
+    button.warning {
+      background: #b91c1c;
+    }
+    button.warning:hover {
+      background: #991b1b;
+    }
+    button.success {
+      background: #15803d;
+    }
+    button.success:hover {
+      background: #166534;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 1rem;
+      overflow: hidden;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    th, td {
+      padding: 12px 12px;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    th {
+      background-color: #eef2f6;
+      font-weight: 600;
+      color: #0c4a6e;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .action-buttons button {
+      padding: 5px 12px;
+      font-size: 0.8rem;
+      margin: 0;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    hr {
+      margin: 1.2rem 0;
+      border: none;
+      height: 1px;
+      background: linear-gradient(to right, #cbd5e1, transparent);
+    }
+
+    .badge {
+      background: #d9f0f7;
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 30px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      margin-left: 10px;
+      color: #0f5b7a;
+    }
+
+    .realtime-badge {
+      background: #22c55e20;
+      color: #15803d;
+      border: 1px solid #22c55e;
+    }
+
+    .status-online {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      background-color: #22c55e;
+      border-radius: 50%;
+      margin-right: 6px;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.4; transform: scale(0.8); }
+      100% { opacity: 1; transform: scale(1.2); }
+    }
+
+    @media (max-width: 640px) {
+      .glass-card {
+        padding: 1.2rem;
+      }
+      input, button {
+        width: 100%;
+        margin-right: 0;
+      }
+      .action-buttons {
+        flex-direction: column;
+      }
+    }
+
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #5b6e82;
+    }
+  </style>
+</head>
+<body>
+
+<div class="glass-card">
+  <!-- Login Section -->
+  <div id="loginSection">
+    <h2>🔐 Masuk ke Akun <span class="badge realtime-badge"><span class="status-online"></span> REAL-TIME CLOUD</span></h2>
+    <div class="login-box" style="background:#ffffffdd; border-radius:1.5rem; padding:1.2rem 1.5rem;">
+      <input type="text" id="loginUser" placeholder="Username" autocomplete="username">
+      <input type="password" id="loginPass" placeholder="Password" autocomplete="current-password">
+      <button onclick="login()">Login / Masuk</button>
+    </div>
+    <p style="font-size:0.85rem; color:#3a6b8f;">✨ <strong>Admin default:</strong> admin / admin123 &nbsp;|&nbsp; Data tersimpan di <strong>Firebase Realtime Database</strong> (sinkron semua perangkat)</p>
+  </div>
+
+  <!-- Admin Panel (real-time) -->
+  <div id="adminPanel" class="hidden">
+    <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap;">
+      <h2>🛠️ Panel Administrator <span class="badge realtime-badge"><span class="status-online"></span> LIVE SYNC</span></h2>
+      <button onclick="logout()" class="secondary" style="background:#475569;">🚪 Keluar Panel</button>
+    </div>
+
+    <!-- Ubah Akun Admin -->
+    <h3>🔁 Ganti Kredensial Admin</h3>
+    <div style="background:#f8fafc; padding:1rem; border-radius:1.2rem;">
+      <input type="text" id="newAdminUser" placeholder="Username admin baru" autocomplete="off">
+      <input type="password" id="newAdminPass" placeholder="Password admin baru" autocomplete="off">
+      <button onclick="changeAdmin()">Perbarui Admin (Cloud)</button>
+    </div>
+
+    <!-- Tambah User -->
+    <h3>➕ Tambah Pengguna (User + Link Tujuan)</h3>
+    <div style="background:#f8fafc; padding:1rem; border-radius:1.2rem;">
+      <input type="text" id="newUser" placeholder="Username (contoh: joko)">
+      <input type="password" id="newPass" placeholder="Password">
+      <input type="text" id="newLink" placeholder="Link tujuan, ex: https://example.com" style="min-width: 220px;">
+      <button onclick="addUser()">Tambah User (Real-time)</button>
+    </div>
+
+    <!-- Daftar user real-time -->
+    <h3>📋 Daftar Pengguna <span style="font-size:0.8rem; font-weight:normal;">(langsung berubah tanpa refresh)</span></h3>
+    <div style="overflow-x: auto;">
+      <table id="userTable">
+        <thead>
+          <tr><th>Username</th><th>Link tujuan</th><th>Aksi</th></tr>
+        </thead>
+        <tbody>
+          <tr class="loading"><td colspan="3">⏳ Menghubungkan ke Firebase...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <hr />
+    <p class="footer-note">⚡ <strong>REAL-TIME:</strong> Setiap perubahan (tambah/edit/hapus) langsung tersimpan di cloud dan terlihat di semua perangkat yang sedang membuka panel admin.</p>
+  </div>
+</div>
+
+<script>
+  // ======================= FIREBASE KONFIGURASI =======================
+  const firebaseConfig = {
+    apiKey: "AIzaSyDApAcE_vgZLro9UkoBpjpnyTTXe7R95Jo",
+    authDomain: "tsalis-b67f4.firebaseapp.com",
+    databaseURL: "https://tsalis-b67f4-default-rtdb.firebaseio.com",
+    projectId: "tsalis-b67f4",
+    storageBucket: "tsalis-b67f4.firebasestorage.app",
+    messagingSenderId: "804490859849",
+    appId: "1:804490859849:web:e0816e434e5dd13d16f698",
+    measurementId: "G-MDKXVB5GZN"
+  };
+
+  // Inisialisasi Firebase
+  firebase.initializeApp(firebaseConfig);
+  const database = firebase.database();
+
+  // Referensi ke node di Realtime Database
+  const adminRef = database.ref('admin');
+  const usersRef = database.ref('users');
+
+  // ======================= VARIABEL GLOBAL =======================
+  let currentAdminSession = null;
+  let usersUnsubscribe = null; // untuk listener realtime
+
+  // ======================= FUNGSI BANTU =======================
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+      if (m === '&') return '&amp;';
+      if (m === '<') return '&lt;';
+      if (m === '>') return '&gt;';
+      return m;
+    });
+  }
+
+  function escapeForJs(str) {
+    if (!str) return '';
+    return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+  }
+
+  // ======================= AMBIL DATA ADMIN DARI FIREBASE =======================
+  async function getAdminFromFirebase() {
+    try {
+      const snapshot = await adminRef.once('value');
+      const adminData = snapshot.val();
+      if (adminData && adminData.username && adminData.password) {
+        return adminData;
+      }
+      // Data default jika belum ada
+      const defaultAdmin = { username: "admin", password: "admin123" };
+      await adminRef.set(defaultAdmin);
+      return defaultAdmin;
+    } catch (error) {
+      console.error("Gagal ambil admin:", error);
+      return { username: "admin", password: "admin123" };
+    }
+  }
+
+  // Update admin ke Firebase
+  async function updateAdminToFirebase(newAdmin) {
+    await adminRef.set(newAdmin);
+  }
+
+  // ======================= LOGIN =======================
+  async function login() {
+    const username = document.getElementById("loginUser").value.trim();
+    const password = document.getElementById("loginPass").value;
+
+    if (!username || !password) {
+      alert("❌ Harap isi username dan password");
+      return;
+    }
+
+    // Ambil admin dari Firebase
+    const admin = await getAdminFromFirebase();
+
+    // LOGIN ADMIN
+    if (username === admin.username && password === admin.password) {
+      currentAdminSession = admin;
+      const adminPanel = document.getElementById("adminPanel");
+      const loginSection = document.getElementById("loginSection");
+      adminPanel.classList.remove("hidden");
+      
+      // Mulai listener realtime untuk users
+      startRealtimeUsersListener();
+      
+      alert("✅ Login ADMIN berhasil! Panel real-time aktif.");
+      document.getElementById("loginPass").value = "";
+      document.getElementById("loginUser").value = "";
+      return;
+    }
+
+    // LOGIN USER BIASA (ambil dari Firebase)
+    try {
+      const usersSnapshot = await usersRef.once('value');
+      const users = usersSnapshot.val() || {};
+      
+      if (users[username] && users[username].password === password) {
+        const redirectLink = users[username].link;
+        if (redirectLink && redirectLink.trim() !== "") {
+          alert(`✅ Selamat datang, ${username}! Mengarahkan ke tujuan...`);
+          window.location.href = redirectLink;
+        } else {
+          alert("⚠️ Akun ini belum memiliki link tujuan. Hubungi admin.");
+        }
+      } else {
+        alert("❌ Gagal login: Username atau password salah!");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      alert("Gagal terhubung ke database.");
+    }
+  }
+
+  // ======================= REAL-TIME LISTENER UNTUK USERS =======================
+  function startRealtimeUsersListener() {
+    if (usersUnsubscribe) {
+      usersUnsubscribe(); // hentikan listener lama jika ada
+    }
+    
+    // Pasang listener real-time
+    usersRef.on('value', (snapshot) => {
+      const users = snapshot.val() || {};
+      renderUserTable(users);
+    });
+    
+    // Simpan fungsi off untuk cleanup nanti
+    usersUnsubscribe = () => {
+      usersRef.off('value');
+    };
+  }
+
+  function stopRealtimeUsersListener() {
+    if (usersUnsubscribe) {
+      usersUnsubscribe();
+      usersUnsubscribe = null;
+    }
+  }
+
+  // Render tabel user dari data realtime
+  function renderUserTable(users) {
+    const table = document.getElementById("userTable");
+    if (!table) return;
+    
+    let html = `
+      <thead>
+        <tr><th>Username</th><th>Link tujuan</th><th>Aksi</th></tr>
+      </thead>
+      <tbody>
+    `;
+    
+    const userList = Object.keys(users);
+    if (userList.length === 0) {
+      html += `<tr><td colspan="3" style="text-align:center;">📭 Belum ada user. Tambahkan user di atas.</td></tr>`;
+    } else {
+      for (let user of userList) {
+        const userData = users[user];
+        const linkDisplay = userData.link || '(tidak ada link)';
+        html += `
+          <tr>
+            <td style="font-weight:500;">${escapeHtml(user)}</td>
+            <td style="word-break:break-all;">${escapeHtml(userData.link || '-')}</td>
+            <td class="action-buttons">
+              <button onclick="editUser('${escapeForJs(user)}')" style="background:#2c6e9e;">✏️ Edit</button>
+              <button onclick="deleteUser('${escapeForJs(user)}')" class="warning" style="background:#b91c1c;">🗑 Hapus</button>
+            </td>
+          </tr>
+        `;
+      }
+    }
+    html += `</tbody>`;
+    table.innerHTML = html;
+  }
+
+  // ======================= ADMIN FUNCTIONS (SEMUA KE FIREBASE) =======================
+  async function changeAdmin() {
+    const newUser = document.getElementById("newAdminUser").value.trim();
+    const newPass = document.getElementById("newAdminPass").value;
+    
+    if (!newUser || !newPass) {
+      alert("⚠️ Username dan password admin baru harus diisi!");
+      return;
+    }
+    
+    try {
+      await updateAdminToFirebase({
+        username: newUser,
+        password: newPass
+      });
+      alert(`✅ Akun admin berhasil diubah di cloud!\nUsername baru: ${newUser}\nPerubahan langsung berlaku global.`);
+      document.getElementById("newAdminUser").value = "";
+      document.getElementById("newAdminPass").value = "";
+      
+      // Jika admin yang sedang login mengubah kredensialnya sendiri, update session
+      if (currentAdminSession) {
+        currentAdminSession = { username: newUser, password: newPass };
+      }
+    } catch (error) {
+      console.error("Gagal update admin:", error);
+      alert("Gagal menyimpan perubahan admin ke database.");
+    }
+  }
+  
+  async function addUser() {
+    let username = document.getElementById("newUser").value.trim();
+    let password = document.getElementById("newPass").value;
+    let link = document.getElementById("newLink").value.trim();
+    
+    if (!username || !password) {
+      alert("⚠️ Username dan password wajib diisi!");
+      return;
+    }
+    if (!link) {
+      alert("⚠️ Link tujuan harus diisi. Contoh: https://google.com");
+      return;
+    }
+    if (!link.startsWith("http://") && !link.startsWith("https://")) {
+      alert("⚠️ Link tujuan harus menggunakan http:// atau https://");
+      return;
+    }
+    
+    try {
+      // Cek apakah user sudah ada
+      const snapshot = await usersRef.child(username).once('value');
+      if (snapshot.exists()) {
+        alert(`❌ Gagal: Username "${username}" sudah terdaftar. Gunakan username lain.`);
+        return;
+      }
+      
+      // Tambah user ke Firebase (real-time auto update semua perangkat)
+      await usersRef.child(username).set({
+        password: password,
+        link: link
+      });
+      
+      alert(`✅ User "${username}" berhasil ditambahkan ke cloud!`);
+      // Clear form
+      document.getElementById("newUser").value = "";
+      document.getElementById("newPass").value = "";
+      document.getElementById("newLink").value = "";
+      // Tabel akan otomatis update karena listener realtime
+    } catch (error) {
+      console.error("Gagal tambah user:", error);
+      alert("Gagal menambahkan user ke database.");
+    }
+  }
+  
+  async function deleteUser(username) {
+    if (!username) return;
+    const confirmDel = confirm(`Hapus user "${username}" secara permanen dari cloud?`);
+    if (confirmDel) {
+      try {
+        await usersRef.child(username).remove();
+        alert(`🗑 User "${username}" telah dihapus dari database (real-time sync).`);
+        // Tabel otomatis update
+      } catch (error) {
+        console.error("Gagal hapus user:", error);
+        alert("Gagal menghapus user.");
+      }
+    }
+  }
+  
+  async function editUser(oldUsername) {
+    if (!oldUsername) return;
+    
+    try {
+      const snapshot = await usersRef.child(oldUsername).once('value');
+      if (!snapshot.exists()) {
+        alert("User tidak ditemukan dalam database!");
+        return;
+      }
+      
+      const currentData = snapshot.val();
+      let newUsername = prompt("✏️ Edit username (kosongkan jika tidak ingin mengubah):", oldUsername);
+      if (newUsername !== null && newUsername.trim() === "") newUsername = oldUsername;
+      else if (newUsername !== null) newUsername = newUsername.trim();
+      
+      let newPassword = prompt("🔑 Password baru (kosongkan jika tetap sama):", "");
+      let newLink = prompt("🔗 Link tujuan baru (ubah jika perlu):", currentData.link);
+      
+      if (newUsername === null || newPassword === null || newLink === null) {
+        alert("Perubahan dibatalkan.");
+        return;
+      }
+      
+      let finalPassword = (newPassword.trim() === "") ? currentData.password : newPassword;
+      let finalLink = (newLink.trim() === "") ? currentData.link : newLink.trim();
+      
+      if (!finalLink.startsWith("http://") && !finalLink.startsWith("https://") && finalLink !== "") {
+        alert("⚠️ Link harus diawali http:// atau https://. Perubahan dibatalkan.");
+        return;
+      }
+      
+      // Jika username berubah
+      if (newUsername !== oldUsername) {
+        const existingCheck = await usersRef.child(newUsername).once('value');
+        if (existingCheck.exists()) {
+          alert(`❌ Gagal: Username "${newUsername}" sudah ada. Gunakan nama lain.`);
+          return;
+        }
+        // Buat user baru, hapus yang lama
+        await usersRef.child(newUsername).set({
+          password: finalPassword,
+          link: finalLink
+        });
+        await usersRef.child(oldUsername).remove();
+      } else {
+        // Update langsung
+        await usersRef.child(oldUsername).update({
+          password: finalPassword,
+          link: finalLink
+        });
+      }
+      
+      alert(`✅ User berhasil diperbarui di cloud (real-time).`);
+    } catch (error) {
+      console.error("Gagal edit user:", error);
+      alert("Terjadi kesalahan saat mengedit user.");
+    }
+  }
+  
+  function logout() {
+    const adminPanel = document.getElementById("adminPanel");
+    adminPanel.classList.add("hidden");
+    // Hentikan listener realtime
+    stopRealtimeUsersListener();
+    currentAdminSession = null;
+    document.getElementById("loginUser").value = "";
+    document.getElementById("loginPass").value = "";
+    alert("🔒 Anda telah logout dari panel admin.");
+  }
+  
+  // ======================= INISIALISASI AWAL =======================
+  async function initializeDatabase() {
+    // Pastikan node admin dan users ada di database
+    try {
+      const adminCheck = await adminRef.once('value');
+      if (!adminCheck.exists()) {
+        await adminRef.set({ username: "admin", password: "admin123" });
+        console.log("✅ Admin default dibuat di Firebase");
+      }
+      
+      const usersCheck = await usersRef.once('value');
+      if (!usersCheck.exists()) {
+        // Opsional: buat contoh user demo
+        await usersRef.set({
+          "aryo": {
+            password: "aryo123",
+            link: "https://www.google.com"
+          },
+          "sari": {
+            password: "sari456",
+            link: "https://github.com"
+          }
+        });
+        console.log("✅ Contoh user demo dibuat di Firebase");
+      }
+    } catch (error) {
+      console.error("Error inisialisasi Firebase:", error);
+    }
+  }
+  
+  // Jalankan inisialisasi
+  initializeDatabase();
+  
+  // Pastikan panel admin tersembunyi saat load
+  window.addEventListener("DOMContentLoaded", function() {
+    document.getElementById("adminPanel").classList.add("hidden");
+  });
+</script>
+</body>
+</html>
